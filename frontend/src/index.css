@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  background: #0a0c10;
+  color: #e8eaed;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 35%),
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.08), transparent 30%),
+    #0a0c10;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}

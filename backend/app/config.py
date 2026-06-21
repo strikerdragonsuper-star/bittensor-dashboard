@@ -1,0 +1,24 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    network: str = "finney"
+    cache_ttl_seconds: int = 60
+    target_subnets: list[int] = [15, 23, 74, 83]
+    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    taostats_api_key: str = ""
+    taostats_base_url: str = "https://api.taostats.io"
+
+    oro_base_url: str = "https://api.oroagents.com"
+    trishool_api_url: str = "https://api.trishool.ai"
+    gittensor_repo_path: str = r"C:\Users\a\Documents\work_space\bittensor\74\gittensor"
+    gittensor_miner_pat: str = ""
+    wandb_api_key: str = ""
+    wandb_entity: str = "toptensor-ai"
+    wandb_project: str = "CliqueAI"
+
+
+settings = Settings()
