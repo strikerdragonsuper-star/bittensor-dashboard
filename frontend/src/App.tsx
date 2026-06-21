@@ -2,14 +2,30 @@ import { useEffect, useState } from "react";
 import { api } from "./api/client";
 import { SubnetDashboard } from "./components/SubnetDashboard";
 import { WalletPanel } from "./components/WalletPanel";
+import { SUBNETS as STATIC_SUBNETS } from "./subnets";
 import type { SubnetSummary } from "./types";
+import {
+  readStoredNetuid,
+  readStoredTab,
+  storeNetuid,
+  storeTab,
+  type AppTab,
+} from "./utils/preferences";
 
 export default function App() {
-  const [subnets, setSubnets] = useState<SubnetSummary[]>([]);
-  const [activeNetuid, setActiveNetuid] = useState<number>(15);
-  const [tab, setTab] = useState<"subnets" | "wallet">("subnets");
+  const [subnets, setSubnets] = useState<SubnetSummary[]>(STATIC_SUBNETS);
+  const [activeNetuid, setActiveNetuid] = useState(readStoredNetuid);
+  const [tab, setTab] = useState<AppTab>(readStoredTab);
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    storeNetuid(activeNetuid);
+  }, [activeNetuid]);
+
+  useEffect(() => {
+    storeTab(tab);
+  }, [tab]);
 
   useEffect(() => {
     api
@@ -20,7 +36,9 @@ export default function App() {
     api
       .listSubnets()
       .then(setSubnets)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load subnets"));
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load live subnet data"),
+      );
   }, []);
 
   const activeSubnet = subnets.find((s) => s.netuid === activeNetuid) ?? subnets[0];
@@ -92,8 +110,7 @@ export default function App() {
               <button
                 key={subnet.netuid}
                 type="button"
-                onClick={() => setActiveNetuid(subnet.netuid)}
-                className={`rounded-xl border px-4 py-3 text-left transition ${
+                onClick={() => setActiveNetuid(subnet.netuid)}                className={`rounded-xl border px-4 py-3 text-left transition ${
                   activeNetuid === subnet.netuid
                     ? "border-sky-400/50 bg-sky-500/10"
                     : "border-white/10 bg-white/[0.02] hover:border-white/20"

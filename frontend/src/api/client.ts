@@ -11,19 +11,34 @@ import type {
   TrishoolPlatformInfo,
 } from "../types/extras";
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
-  if (!response.ok) {
-    let detail = await response.text();
-    try {
-      const parsed = JSON.parse(detail) as { detail?: string };
-      detail = parsed.detail ?? detail;
-    } catch {
-      /* keep raw text */
+async function fetchJson<T>(path: string, init?: RequestInit, timeoutMs = 20_000): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(path, {
+      ...init,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      let detail = await response.text();
+      try {
+        const parsed = JSON.parse(detail) as { detail?: string };
+        detail = parsed.detail ?? detail;
+      } catch {
+        /* keep raw text */
+      }
+      throw new Error(detail || `Request failed: ${response.status}`);
     }
-    throw new Error(detail || `Request failed: ${response.status}`);
+    return response.json() as Promise<T>;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Request timed out — is the backend running?");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  return response.json() as Promise<T>;
 }
 
 export const api = {
