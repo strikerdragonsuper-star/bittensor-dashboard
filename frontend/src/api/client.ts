@@ -7,7 +7,6 @@ import type {
 } from "../types";
 import type {
   CliqueRuns,
-  GittensorScore,
   OroLeaderboard,
   TrishoolPlatformInfo,
 } from "../types/extras";
@@ -42,11 +41,5 @@ export const api = {
 
   getOroLeaderboard: () => fetchJson<OroLeaderboard>("/api/subnets/15/oro/leaderboard"),
   getTrishoolInfo: () => fetchJson<TrishoolPlatformInfo>("/api/subnets/23/trishool/info"),
-  getGittensorScore: (githubPat?: string) =>
-    fetchJson<GittensorScore>("/api/subnets/74/gittensor/score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ github_pat: githubPat ?? null }),
-    }),
   getCliqueRuns: () => fetchJson<CliqueRuns>("/api/subnets/83/clique/runs?limit=8"),
 };

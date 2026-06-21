@@ -74,7 +74,7 @@ export function WalletPanel() {
             <p className="mt-2 text-2xl font-semibold text-white">
               {portfolio?.entries.length ?? 0}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Miner UIDs on SN15, SN23, SN74, SN83</p>
+            <p className="mt-1 text-xs text-slate-500">Miner UIDs on SN15, SN23, SN83</p>
           </div>
         </div>
       ) : null}
@@ -86,8 +86,8 @@ export function WalletPanel() {
               <tr>
                 <th className="px-4 py-3">Subnet</th>
                 <th className="px-4 py-3">UID</th>
+                <th className="px-4 py-3">Daily income</th>
                 <th className="px-4 py-3">Stake</th>
-                <th className="px-4 py-3">Emission</th>
               </tr>
             </thead>
             <tbody>
@@ -97,8 +97,8 @@ export function WalletPanel() {
                     SN{entry.netuid} · {entry.name}
                   </td>
                   <td className="px-4 py-3">{entry.uid}</td>
+                  <td className="px-4 py-3 text-emerald-300">{formatTao(entry.daily_income)} τ</td>
                   <td className="px-4 py-3">{formatTao(entry.stake)} τ</td>
-                  <td className="px-4 py-3">{formatTao(entry.emission, 6)}</td>
                 </tr>
               ))}
             </tbody>

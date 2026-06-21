@@ -32,8 +32,7 @@ export default function App() {
           <p className="text-xs uppercase tracking-[0.22em] text-violet-300/80">Bittensor</p>
           <h1 className="text-3xl font-bold text-white md:text-4xl">Miner Dashboard</h1>
           <p className="mt-2 max-w-xl text-sm text-slate-400">
-            Miner rankings and emissions for SN15 (ORO), SN23 (Trishool), SN74 (Gittensor), and SN83
-            (CliqueAI).
+            Miner rankings and emissions for SN15 (ORO), SN23 (Trishool), and SN83 (CliqueAI).
           </p>
         </div>
         <div className="flex gap-2">

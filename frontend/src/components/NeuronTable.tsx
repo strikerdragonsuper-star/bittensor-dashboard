@@ -32,10 +32,10 @@ export function NeuronTable({ neurons, loading }: NeuronTableProps) {
               <th className="px-4 py-3">Rank</th>
               <th className="px-4 py-3">UID</th>
               <th className="px-4 py-3">Hotkey</th>
+              <th className="px-4 py-3">Daily income (τ)</th>
               <th className="px-4 py-3">Stake</th>
-              <th className="px-4 py-3">Emission</th>
-              <th className="px-4 py-3">Incentive</th>
-              <th className="px-4 py-3">Trust</th>
+              <th className="px-4 py-3">Incentive share</th>
+              <th className="px-4 py-3">Epoch emission</th>
               <th className="px-4 py-3">Serving</th>
             </tr>
           </thead>
@@ -50,10 +50,12 @@ export function NeuronTable({ neurons, loading }: NeuronTableProps) {
                 <td className="mono px-4 py-3 text-sky-300" title={neuron.hotkey}>
                   {truncateKey(neuron.hotkey, 8, 6)}
                 </td>
+                <td className="px-4 py-3 font-medium text-emerald-300">
+                  {formatTao(neuron.daily_income)} τ
+                </td>
                 <td className="px-4 py-3 text-slate-200">{formatTao(neuron.stake)} τ</td>
-                <td className="px-4 py-3 text-amber-200">{formatTao(neuron.emission, 6)}</td>
                 <td className="px-4 py-3 text-slate-200">{formatPercent(neuron.incentive)}</td>
-                <td className="px-4 py-3 text-slate-200">{formatPercent(neuron.trust)}</td>
+                <td className="px-4 py-3 text-amber-200/80">{formatTao(neuron.emission, 6)}</td>
                 <td className="px-4 py-3">
                   <span className={neuron.is_serving ? "text-emerald-400" : "text-slate-500"}>
                     {neuron.is_serving ? "Yes" : "No"}
@@ -64,6 +66,9 @@ export function NeuronTable({ neurons, loading }: NeuronTableProps) {
           </tbody>
         </table>
       </div>
+      <p className="border-t border-white/10 px-4 py-2 text-xs text-slate-500">
+        Daily income from Taostats <span className="mono">daily_mining_alpha_as_tao</span> (projected τ per day).
+      </p>
     </div>
   );
 }

@@ -6,7 +6,7 @@ from app.routes.api import router
 
 app = FastAPI(
     title="Bittensor Subnet Dashboard",
-    description="On-chain metagraph dashboard for subnets 15, 23, 74, and 83",
+    description="On-chain metagraph dashboard for subnets 15, 23, and 83",
     version="0.1.0",
 )
 

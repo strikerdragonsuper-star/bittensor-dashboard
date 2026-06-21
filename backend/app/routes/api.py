@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.adapters.clique import clique_adapter
-from app.adapters.gittensor import gittensor_adapter
 from app.adapters.oro import oro_adapter
 from app.adapters.trishool import trishool_adapter
 from app.config import settings
@@ -21,11 +19,10 @@ from app.models import (
 )
 from app.models_extras import (
     CliqueRunsResponse,
-    GittensorScoreResponse,
     OroLeaderboardResponse,
     TrishoolPlatformInfo,
 )
-from app.schemas import GittensorScoreRequest
+from app.services.miner_filter import is_miner_neuron
 from app.services.subtensor import chain_service
 from app.subnet_info import SUBNETS
 
@@ -34,15 +31,14 @@ router = APIRouter(prefix="/api")
 
 @router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    gittensor_path = Path(settings.gittensor_repo_path)
     return HealthResponse(
         status="ok",
         network=settings.network,
         subnets=settings.target_subnets,
         taostats_configured=bool(settings.taostats_api_key),
         wandb_configured=bool(settings.wandb_api_key),
-        gittensor_configured=gittensor_path.is_dir() and bool(settings.gittensor_miner_pat),
     )
+
 
 @router.get("/subnets", response_model=list[SubnetSummary])
 async def list_subnets() -> list[SubnetSummary]:
@@ -76,9 +72,9 @@ async def subnet_neurons(
     if role == "validator":
         neurons = [n for n in neurons if n.is_validator]
     else:
-        neurons = [n for n in neurons if not n.is_validator and n.active]
+        neurons = [n for n in neurons if is_miner_neuron(n)]
 
-    neurons.sort(key=lambda n: n.emission, reverse=True)
+    neurons.sort(key=lambda n: n.daily_income if role == "miner" else n.emission, reverse=True)
     for rank, neuron in enumerate(neurons, start=1):
         neuron.rank = rank
 
@@ -127,7 +123,7 @@ async def wallet_portfolio(address: str) -> PortfolioResponse:
         if not matched:
             continue
         for neuron in matched:
-            if neuron.is_validator:
+            if neuron.is_validator or not is_miner_neuron(neuron):
                 continue
             entries.append(
                 PortfolioEntry(
@@ -137,6 +133,7 @@ async def wallet_portfolio(address: str) -> PortfolioResponse:
                     hotkey=neuron.hotkey,
                     stake=neuron.stake,
                     emission=neuron.emission,
+                    daily_income=neuron.daily_income,
                     incentive=neuron.incentive,
                     role="miner",
                 )
@@ -161,11 +158,6 @@ async def oro_leaderboard(
 @router.get("/subnets/23/trishool/info", response_model=TrishoolPlatformInfo)
 async def trishool_info() -> TrishoolPlatformInfo:
     return await trishool_adapter.fetch_platform_info()
-
-
-@router.post("/subnets/74/gittensor/score", response_model=GittensorScoreResponse)
-async def gittensor_score(body: GittensorScoreRequest) -> GittensorScoreResponse:
-    return await gittensor_adapter.fetch_miner_score(github_pat=body.github_pat)
 
 
 @router.get("/subnets/83/clique/runs", response_model=CliqueRunsResponse)

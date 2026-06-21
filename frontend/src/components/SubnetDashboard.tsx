@@ -84,9 +84,9 @@ export function SubnetDashboard({ netuid, summary }: SubnetDashboardProps) {
           value={overview ? `${formatTao(overview.total_stake)} τ` : "—"}
         />
         <StatCard
-          label="Miner emission"
-          value={overview ? formatTao(overview.total_emission, 6) : "—"}
-          hint="Per epoch (chain units)"
+          label="Total daily income"
+          value={overview ? `${formatTao(overview.total_daily_income)} τ` : "—"}
+          hint="Sum of projected daily τ rewards"
         />
         <StatCard
           label="Avg incentive"

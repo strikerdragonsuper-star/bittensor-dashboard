@@ -1,4 +1,4 @@
-# Bittensor Subnet Dashboard
+# Bittensor Miner Dashboard
 
 Unified dashboard for your Bittensor subnets:
 
@@ -6,22 +6,20 @@ Unified dashboard for your Bittensor subnets:
 |--------|------|-------|
 | **15** | ORO | AI shopping agents |
 | **23** | Trishool | AI guard / adversarial eval |
-| **74** | Gittensor | OSS contribution rewards |
 | **83** | CliqueAI | Max-clique solver network |
 
 ## Features
 
 ### Phase 1 — On-chain (Taostats)
-- Subnet overview: neuron counts, stake, emissions
-- Metagraph table: miners & validators
-- Wallet lookup: balance + positions across all four subnets
+- Subnet overview: miner counts, stake, emissions
+- Miner rankings table
+- Wallet lookup: balance + miner positions
 
 ### Phase 2 — Subnet-specific
 | Subnet | Panel | Data source | Auth |
 |--------|-------|-------------|------|
 | **SN15** | ORO race leaderboard | `api.oroagents.com` public API | None |
 | **SN23** | Trishool platform info | Link + on-chain metagraph | Validator wallet (future) |
-| **SN74** | Gittensor miner score | Local `gitt miner score --json` | GitHub PAT |
 | **SN83** | CliqueAI runs | W&B `toptensor-ai/CliqueAI` | W&B API key |
 
 ## Quick start
@@ -57,15 +55,12 @@ Open http://localhost:5173
 TAOSTATS_API_KEY=your_key_here
 
 # Optional — Phase 2
-GITTENSOR_REPO_PATH=C:\Users\a\Documents\work_space\bittensor\74\gittensor
-GITTENSOR_MINER_PAT=ghp_...
 WANDB_API_KEY=your_wandb_key
 ```
 
 | Key | Where to get it |
 |-----|-----------------|
 | `TAOSTATS_API_KEY` | [taostats.io/pro](https://taostats.io/pro) |
-| `GITTENSOR_MINER_PAT` | GitHub → Settings → Developer settings → PAT |
 | `WANDB_API_KEY` | [wandb.ai/authorize](https://wandb.ai/authorize) |
 
 ## API endpoints
@@ -73,9 +68,8 @@ WANDB_API_KEY=your_wandb_key
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/subnets/{netuid}/overview` | Subnet summary |
-| GET | `/api/subnets/{netuid}/neurons` | Metagraph |
+| GET | `/api/subnets/{netuid}/neurons` | Miner metagraph |
 | GET | `/api/subnets/15/oro/leaderboard` | ORO top agent + race qualifiers |
 | GET | `/api/subnets/23/trishool/info` | Trishool platform status |
-| POST | `/api/subnets/74/gittensor/score` | Run local Gittensor scoring |
 | GET | `/api/subnets/83/clique/runs` | Latest CliqueAI W&B runs |
-| GET | `/api/wallets/{address}/portfolio` | Wallet positions |
+| GET | `/api/wallets/{address}/portfolio` | Wallet miner positions |

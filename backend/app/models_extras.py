@@ -15,6 +15,7 @@ class OroTopAgent(BaseModel):
     top_score: float = 0.0
     top_agent_version_id: str | None = None
     computed_at: str | None = None
+    daily_income_tao: float | None = None
 
 
 class OroRaceSummary(BaseModel):
@@ -49,26 +50,6 @@ class TrishoolPlatformInfo(BaseModel):
     dashboard_url: str
     message: str
     weights: dict[str, float] | None = None
-
-
-class GittensorAllocationRow(BaseModel):
-    repository_full_name: str
-    emission_share: float = 0.0
-    total_reward: float = 0.0
-    pr_score: float = 0.0
-
-
-class GittensorScoreResponse(BaseModel):
-    success: bool
-    total_score: float = 0.0
-    blended_reward: float = 0.0
-    github_id: str | None = None
-    hotkey: str | None = None
-    is_eligible: bool = False
-    merged_prs: int = 0
-    allocation: list[GittensorAllocationRow] = Field(default_factory=list)
-    failed_reason: str | None = None
-    updated_at: datetime
 
 
 class CliqueMinerScore(BaseModel):

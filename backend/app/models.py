@@ -16,8 +16,10 @@ class NeuronRecord(BaseModel):
     incentive: float
     dividends: float
     emission: float
+    daily_income: float
     validator_trust: float
     is_validator: bool
+    is_owner: bool = False
     is_serving: bool
     rank: int | None = None
     active: bool = True
@@ -34,6 +36,7 @@ class SubnetOverview(BaseModel):
     miner_count: int
     total_stake: float
     total_emission: float
+    total_daily_income: float
     avg_incentive: float
     updated_at: datetime
 
@@ -66,7 +69,6 @@ class HealthResponse(BaseModel):
     subnets: list[int]
     taostats_configured: bool
     wandb_configured: bool
-    gittensor_configured: bool
 
 
 class PortfolioEntry(BaseModel):
@@ -76,6 +78,7 @@ class PortfolioEntry(BaseModel):
     hotkey: str | None = None
     stake: float = 0.0
     emission: float = 0.0
+    daily_income: float = 0.0
     incentive: float = 0.0
     role: str = Field(description="validator, miner, or none")
 

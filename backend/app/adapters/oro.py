@@ -42,6 +42,17 @@ class OroAdapter:
                 computed_at=top_raw.get("computed_at"),
             )
 
+            if top_agent.top_miner_hotkey:
+                from app.services.subtensor import chain_service
+
+                neurons, _ = await chain_service.get_neurons(self.netuid)
+                match = next(
+                    (n for n in neurons if n.hotkey == top_agent.top_miner_hotkey),
+                    None,
+                )
+                if match:
+                    top_agent.daily_income_tao = match.daily_income
+
             recent_races = [
                 OroRaceSummary(
                     race_id=str(r.get("race_id", "")),

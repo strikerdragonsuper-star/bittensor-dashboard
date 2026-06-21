@@ -1,5 +1,4 @@
 import { CliquePanel } from "./CliquePanel";
-import { GittensorPanel } from "./GittensorPanel";
 import { OroPanel } from "./OroPanel";
 import { TrishoolPanel } from "./TrishoolPanel";
 
@@ -13,8 +12,6 @@ export function SubnetExtras({ netuid }: SubnetExtrasProps) {
       return <OroPanel />;
     case 23:
       return <TrishoolPanel />;
-    case 74:
-      return <GittensorPanel />;
     case 83:
       return <CliquePanel />;
     default:

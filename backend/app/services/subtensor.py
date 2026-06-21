@@ -11,6 +11,7 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.models import NeuronRecord, SubnetOverview
+from app.services.miner_filter import is_miner_neuron
 from app.subnet_info import SUBNETS
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,8 @@ class TaostatsService:
         validator_permit = bool(row.get("validator_permit"))
         vtrust = _float(row.get("validator_trust"))
 
+        daily_income_tao = _rao_to_tao(row.get("daily_mining_alpha_as_tao"))
+
         return NeuronRecord(
             uid=int(row.get("uid", 0)),
             hotkey=hotkey.get("ss58", "") if isinstance(hotkey, dict) else str(hotkey),
@@ -114,8 +117,10 @@ class TaostatsService:
             incentive=_float(row.get("incentive")),
             dividends=_float(row.get("dividends")),
             emission=_rao_to_tao(row.get("emission")),
+            daily_income=daily_income_tao,
             validator_trust=vtrust,
             is_validator=validator_permit and vtrust > 0,
+            is_owner=bool(row.get("is_owner_hotkey")),
             is_serving=bool(axon),
             rank=int(row["rank"]) if row.get("rank") is not None else None,
             active=bool(row.get("active", True)),
@@ -135,7 +140,7 @@ class TaostatsService:
         neurons, block = await self.get_neurons(netuid)
 
         validators = [n for n in neurons if n.is_validator]
-        miners = [n for n in neurons if not n.is_validator and n.active]
+        miners = [n for n in neurons if is_miner_neuron(n)]
 
         return SubnetOverview(
             netuid=netuid,
@@ -148,6 +153,7 @@ class TaostatsService:
             miner_count=len(miners),
             total_stake=sum(n.stake for n in miners),
             total_emission=sum(n.emission for n in miners),
+            total_daily_income=sum(n.daily_income for n in miners),
             avg_incentive=sum(n.incentive for n in miners) / max(len(miners), 1),
             updated_at=datetime.now(timezone.utc),
         )

@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { api } from "../../api/client";
 import type { OroLeaderboard } from "../../types/extras";
-import { formatPercent, truncateKey } from "../../utils/format";
+import { formatPercent, formatTao, truncateKey } from "../../utils/format";
 
 export function OroPanel() {
   const [data, setData] = useState<OroLeaderboard | null>(null);
@@ -28,7 +28,7 @@ export function OroPanel() {
 
   return (
     <PanelShell title="ORO race leaderboard" hint="Public data from api.oroagents.com">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <MiniStat
           label="Top agent score"
           value={formatPercent(data.top_agent.top_score)}
@@ -37,6 +37,15 @@ export function OroPanel() {
               ? truncateKey(data.top_agent.top_miner_hotkey, 10, 6)
               : "No leader yet"
           }
+        />
+        <MiniStat
+          label="King daily income"
+          value={
+            data.top_agent.daily_income_tao != null
+              ? `${formatTao(data.top_agent.daily_income_tao)} τ`
+              : "—"
+          }
+          sub="On-chain projected τ/day"
         />
         <MiniStat
           label="Recent races"

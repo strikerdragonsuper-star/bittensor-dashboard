@@ -23,6 +23,7 @@ export interface SubnetOverview {
   miner_count: number;
   total_stake: number;
   total_emission: number;
+  total_daily_income: number;
   avg_incentive: number;
   updated_at: string;
 }
@@ -37,6 +38,7 @@ export interface NeuronRecord {
   incentive: number;
   dividends: number;
   emission: number;
+  daily_income: number;
   validator_trust: number;
   is_validator: boolean;
   is_serving: boolean;
@@ -66,6 +68,7 @@ export interface PortfolioEntry {
   hotkey: string | null;
   stake: number;
   emission: number;
+  daily_income: number;
   incentive: number;
   role: string;
 }

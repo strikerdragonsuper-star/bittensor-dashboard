@@ -3,6 +3,7 @@ export interface OroTopAgent {
   top_score: number;
   top_agent_version_id: string | null;
   computed_at: string | null;
+  daily_income_tao: number | null;
 }
 
 export interface OroRaceSummary {
@@ -37,26 +38,6 @@ export interface TrishoolPlatformInfo {
   dashboard_url: string;
   message: string;
   weights: Record<string, number> | null;
-}
-
-export interface GittensorAllocationRow {
-  repository_full_name: string;
-  emission_share: number;
-  total_reward: number;
-  pr_score: number;
-}
-
-export interface GittensorScore {
-  success: boolean;
-  total_score: number;
-  blended_reward: number;
-  github_id: string | null;
-  hotkey: string | null;
-  is_eligible: boolean;
-  merged_prs: number;
-  allocation: GittensorAllocationRow[];
-  failed_reason: string | null;
-  updated_at: string;
 }
 
 export interface CliqueMinerScore {
