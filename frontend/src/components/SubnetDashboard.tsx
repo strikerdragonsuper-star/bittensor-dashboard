@@ -42,7 +42,7 @@ export function SubnetDashboard({ netuid, summary }: SubnetDashboardProps) {
     }
 
     load();
-    const interval = setInterval(load, 60_000);
+    const interval = setInterval(load, 180_000);
     return () => {
       cancelled = true;
       clearInterval(interval);

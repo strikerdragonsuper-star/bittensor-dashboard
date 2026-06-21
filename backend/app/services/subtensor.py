@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections import deque
 from datetime import datetime, timezone
 from typing import Any
 
@@ -43,6 +44,31 @@ class TaostatsService:
     def __init__(self) -> None:
         self._lock = asyncio.Lock()
         self._cache: dict[str, tuple[float, Any]] = {}
+        self._call_times: deque[float] = deque()
+        self._gate = asyncio.Lock()
+
+    async def _throttle_taostats(self) -> None:
+        """Stay within Taostats free tier (~5 requests/min)."""
+        async with self._gate:
+            now = time.monotonic()
+            while self._call_times and now - self._call_times[0] >= 60:
+                self._call_times.popleft()
+
+            max_per_min = settings.taostats_max_requests_per_minute
+            if len(self._call_times) >= max_per_min:
+                wait = 60 - (now - self._call_times[0]) + 0.5
+                logger.info("Taostats rate limit: waiting %.1fs", wait)
+                await asyncio.sleep(wait)
+                now = time.monotonic()
+                while self._call_times and now - self._call_times[0] >= 60:
+                    self._call_times.popleft()
+
+            if self._call_times:
+                gap = settings.taostats_min_request_interval - (now - self._call_times[-1])
+                if gap > 0:
+                    await asyncio.sleep(gap)
+
+            self._call_times.append(time.monotonic())
 
     def _headers(self) -> dict[str, str]:
         if not settings.taostats_api_key:
@@ -70,12 +96,30 @@ class TaostatsService:
             self._cache[key] = (time.monotonic(), value)
             return value
 
-    async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        _retry: int = 0,
+    ) -> dict[str, Any]:
+        await self._throttle_taostats()
         url = f"{settings.taostats_base_url}{path}"
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.get(url, headers=self._headers(), params=params)
             if response.status_code == 401:
                 raise HTTPException(status_code=401, detail="Invalid Taostats API key")
+            if response.status_code == 429 and _retry < 2:
+                await asyncio.sleep(15)
+                return await self._get(path, params, _retry=_retry + 1)
+            if response.status_code == 429:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "Taostats rate limit reached (free tier: 5 requests/min). "
+                        "Cached data will be used when available — try again shortly."
+                    ),
+                )
             if response.status_code >= 400:
                 raise HTTPException(
                     status_code=502,
