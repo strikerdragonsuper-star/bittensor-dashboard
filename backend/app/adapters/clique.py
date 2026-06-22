@@ -7,7 +7,11 @@ from fastapi import HTTPException
 
 from app.adapters.cache import TTLCache
 from app.config import settings
-from app.models_extras import CliqueMinerScore, CliqueRunSummary, CliqueRunsResponse
+from app.models_extras import (
+    CliqueMinerScore,
+    CliqueRunSummary,
+    CliqueRunsResponse,
+)
 
 DASHBOARD_URL = "https://wandb.ai/toptensor-ai/CliqueAI/table"
 _cache = TTLCache(settings.cache_ttl_seconds)
@@ -99,6 +103,55 @@ class CliqueAdapter:
         return await _cache.get(
             f"clique:runs:{limit}",
             lambda: asyncio.to_thread(self._fetch_runs_sync, limit),
+        )
+
+    def _find_hotkey_score_sync(
+        self, hotkey: str, *, run_limit: int = 12
+    ) -> tuple[CliqueMinerScore, str | None, str | None] | None:
+        api = self._api()
+        path = f"{settings.wandb_entity}/{settings.wandb_project}"
+        runs = api.runs(path, order="-created_at", per_page=run_limit)
+
+        for run in runs:
+            try:
+                history = run.history(samples=1, pandas=False)
+                if not history:
+                    continue
+                row = history[-1]
+                uids = row.get("miner_uids") or []
+                hotkeys = row.get("miner_hotkeys") or []
+                rewards = row.get("miner_rewards") or []
+                optimalities = row.get("miner_optimality") or []
+                diversities = row.get("miner_diversity") or []
+
+                for i, uid in enumerate(uids):
+                    if i >= len(hotkeys) or str(hotkeys[i]) != hotkey:
+                        continue
+                    return (
+                        CliqueMinerScore(
+                            uid=int(uid),
+                            hotkey=hotkey,
+                            reward=float(rewards[i]) if i < len(rewards) else 0.0,
+                            optimality=float(optimalities[i]) if i < len(optimalities) else 0.0,
+                            diversity=float(diversities[i]) if i < len(diversities) else 0.0,
+                        ),
+                        run.name,
+                        run.id,
+                    )
+            except Exception:
+                continue
+        return None
+
+    async def find_hotkey_score(
+        self, hotkey: str, *, refresh: bool = False
+    ) -> tuple[CliqueMinerScore, str | None, str | None] | None:
+        cache_key = f"clique:hotkey:{hotkey}"
+        if refresh:
+            _cache.invalidate(cache_key)
+
+        return await _cache.get(
+            cache_key,
+            lambda: asyncio.to_thread(self._find_hotkey_score_sync, hotkey),
         )
 
 

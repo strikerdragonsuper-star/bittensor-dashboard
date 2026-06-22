@@ -20,6 +20,7 @@ from app.models import (
     WalletBalance,
 )
 from app.models_extras import (
+    CliqueHotkeyStatusResponse,
     CliqueRunsResponse,
     OroLeaderboardResponse,
     TrishoolPlatformInfo,
@@ -77,9 +78,11 @@ async def subnet_rankings(
 ) -> SubnetRankingsResponse:
     """All subnets ranked by total miner daily income (highest first)."""
     rankings = await chain_service.get_subnet_rankings(refresh=refresh)
+    warming = chain_service.schedule_miner_daily_warm(refresh=refresh)
     return SubnetRankingsResponse(
         rankings=rankings,
         updated_at=datetime.now(timezone.utc),
+        miner_daily_warming=warming or chain_service.is_miner_daily_warming(),
     )
 
 
@@ -267,3 +270,61 @@ async def clique_runs(
     limit: int = Query(default=10, ge=1, le=30),
 ) -> CliqueRunsResponse:
     return await clique_adapter.fetch_recent_runs(limit=limit)
+
+
+@router.get("/subnets/83/clique/hotkeys/{hotkey}/status", response_model=CliqueHotkeyStatusResponse)
+async def clique_hotkey_status(
+    hotkey: str,
+    refresh: bool = Query(default=False),
+) -> CliqueHotkeyStatusResponse:
+    """On-chain metagraph status plus latest CliqueAI W&B round score for a hotkey."""
+    neurons, _ = await chain_service.get_neurons(83, refresh=refresh)
+    _, registration_fee = await chain_service.get_subnet_tag_stats(
+        83,
+        refresh=refresh,
+        cache_only=not refresh,
+    )
+
+    neuron = next((n for n in neurons if n.hotkey == hotkey), None)
+
+    miner_rank: int | None = None
+    if neuron and is_miner_neuron(neuron):
+        miners = [n for n in neurons if is_miner_neuron(n)]
+        miners.sort(key=lambda n: n.daily_income, reverse=True)
+        miner_rank = next((i + 1 for i, m in enumerate(miners) if m.uid == neuron.uid), None)
+
+    latest_reward: float | None = None
+    latest_optimality: float | None = None
+    latest_diversity: float | None = None
+    latest_run_name: str | None = None
+    latest_run_id: str | None = None
+    try:
+        wandb_score = await clique_adapter.find_hotkey_score(hotkey, refresh=refresh)
+        if wandb_score:
+            score, latest_run_name, latest_run_id = wandb_score
+            latest_reward = score.reward
+            latest_optimality = score.optimality
+            latest_diversity = score.diversity
+    except HTTPException:
+        pass
+
+    return CliqueHotkeyStatusResponse(
+        hotkey=hotkey,
+        registered=neuron is not None,
+        uid=neuron.uid if neuron else None,
+        miner_rank=miner_rank,
+        coldkey=neuron.coldkey if neuron else None,
+        active=neuron.active if neuron else False,
+        is_serving=neuron.is_serving if neuron else False,
+        stake=neuron.stake if neuron else 0.0,
+        daily_income=neuron.daily_income if neuron else 0.0,
+        incentive=neuron.incentive if neuron else 0.0,
+        emission=neuron.emission if neuron else 0.0,
+        registration_fee=registration_fee,
+        latest_reward=latest_reward,
+        latest_optimality=latest_optimality,
+        latest_diversity=latest_diversity,
+        latest_run_name=latest_run_name,
+        latest_run_id=latest_run_id,
+        updated_at=datetime.now(timezone.utc),
+    )

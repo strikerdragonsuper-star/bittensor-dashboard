@@ -30,3 +30,6 @@ class TTLCache:
             result = await loader()
             self._store[key] = (time.monotonic(), result)
             return result
+
+    def invalidate(self, key: str) -> None:
+        self._store.pop(key, None)

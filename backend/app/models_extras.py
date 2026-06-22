@@ -71,3 +71,24 @@ class CliqueRunsResponse(BaseModel):
     runs: list[CliqueRunSummary]
     dashboard_url: str
     updated_at: datetime
+
+
+class CliqueHotkeyStatusResponse(BaseModel):
+    hotkey: str
+    registered: bool
+    uid: int | None = None
+    miner_rank: int | None = None
+    coldkey: str | None = None
+    active: bool = False
+    is_serving: bool = False
+    stake: float = 0.0
+    daily_income: float = 0.0
+    incentive: float = 0.0
+    emission: float = 0.0
+    registration_fee: float | None = None
+    latest_reward: float | None = None
+    latest_optimality: float | None = None
+    latest_diversity: float | None = None
+    latest_run_name: str | None = None
+    latest_run_id: str | None = None
+    updated_at: datetime

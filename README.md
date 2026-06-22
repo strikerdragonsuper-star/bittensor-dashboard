@@ -76,4 +76,5 @@ WANDB_API_KEY=your_wandb_key
 | GET | `/api/subnets/15/oro/leaderboard` | ORO top agent + race qualifiers |
 | GET | `/api/subnets/23/trishool/info` | Trishool platform status |
 | GET | `/api/subnets/83/clique/runs` | Latest CliqueAI W&B runs |
+| GET | `/api/subnets/83/clique/hotkeys/{hotkey}/status` | CliqueAI hotkey on-chain + W&B status |
 | GET | `/api/wallets/{address}/portfolio` | Wallet miner positions |

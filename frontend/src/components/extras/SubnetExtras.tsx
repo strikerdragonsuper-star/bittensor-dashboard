@@ -1,3 +1,5 @@
+import { CliqueHotkeyPanel } from "./CliqueHotkeyPanel";
+import { CliquePanel } from "./CliquePanel";
 import { OroPanel } from "./OroPanel";
 import { TrishoolPanel } from "./TrishoolPanel";
 
@@ -11,6 +13,13 @@ export function SubnetExtras({ netuid }: SubnetExtrasProps) {
       return <OroPanel />;
     case 23:
       return <TrishoolPanel />;
+    case 83:
+      return (
+        <div className="space-y-6">
+          <CliqueHotkeyPanel />
+          <CliquePanel />
+        </div>
+      );
     default:
       return null;
   }

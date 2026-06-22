@@ -121,3 +121,4 @@ class SubnetRankingEntry(BaseModel):
 class SubnetRankingsResponse(BaseModel):
     rankings: list[SubnetRankingEntry]
     updated_at: datetime
+    miner_daily_warming: bool = False

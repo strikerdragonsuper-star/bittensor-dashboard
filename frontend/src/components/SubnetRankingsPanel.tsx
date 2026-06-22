@@ -43,9 +43,15 @@ export function SubnetRankingsPanel({ onSelectSubnet }: SubnetRankingsPanelProps
 
   useEffect(() => {
     load(false);
-    const interval = setInterval(() => load(true), DATA_REFRESH_INTERVAL_MS);
+    const interval = setInterval(() => load(false), DATA_REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [load]);
+
+  useEffect(() => {
+    if (!data?.miner_daily_warming) return;
+    const interval = setInterval(() => load(false), 30_000);
+    return () => clearInterval(interval);
+  }, [data?.miner_daily_warming, load]);
 
   return (
     <div className="space-y-6">
@@ -54,12 +60,17 @@ export function SubnetRankingsPanel({ onSelectSubnet }: SubnetRankingsPanelProps
           <h2 className="text-xl font-semibold text-white">Subnet rankings</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">
             All subnets sorted by{" "}
-            <span className="text-slate-300">miner/day</span> (highest first).
-            Miner/Day is total projected daily income across all miners.
+            <span className="text-slate-300">miner/day</span> (highest first, descending).
+            Miner/Day totals fill in over a few minutes on first load.
           </p>
           {data ? (
             <p className="mt-2 text-xs text-slate-500" title={formatTime(data.updated_at)}>
               Updated {formatRelativeTime(data.updated_at)}
+            </p>
+          ) : null}
+          {data?.miner_daily_warming ? (
+            <p className="mt-1 text-xs text-amber-400/90">
+              Updating miner/day totals in the background…
             </p>
           ) : null}
         </div>
@@ -82,9 +93,6 @@ export function SubnetRankingsPanel({ onSelectSubnet }: SubnetRankingsPanelProps
       {loading && !data ? (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-8 text-center text-slate-400">
           Loading subnet rankings…
-          <p className="mt-2 text-xs text-slate-500">
-            First load may take several minutes while miner daily totals are fetched.
-          </p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
@@ -119,11 +127,16 @@ function RankingRow({
   row: SubnetRankingEntry;
   onSelectSubnet?: (netuid: number) => void;
 }) {
-  const clickable = row.tracked && onSelectSubnet;
+  const handleClick = () => {
+    window.open(`https://taostats.io/subnets/${row.netuid}`, "_blank", "noopener,noreferrer");
+    if (row.tracked && onSelectSubnet) {
+      onSelectSubnet(row.netuid);
+    }
+  };
   return (
     <tr
-      className={`text-slate-200 ${clickable ? "cursor-pointer hover:bg-white/[0.03]" : ""}`}
-      onClick={clickable ? () => onSelectSubnet(row.netuid) : undefined}
+      className="cursor-pointer text-slate-200 hover:bg-white/[0.03]"
+      onClick={handleClick}
     >
       <td className="px-4 py-3 font-mono text-slate-400">{row.rank}</td>
       <td className="px-4 py-3">

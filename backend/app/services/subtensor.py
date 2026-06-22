@@ -48,6 +48,7 @@ class TaostatsService:
         self._cache_lock = asyncio.Lock()
         self._cache: dict[str, tuple[float, Any]] = {}
         self._inflight: dict[str, asyncio.Task[Any]] = {}
+        self._miner_daily_warm_task: asyncio.Task[None] | None = None
 
     async def _cached(
         self,
@@ -472,7 +473,9 @@ class TaostatsService:
             return pool_name
         return ""
 
-    async def _fetch_subnet_pool_name_map(self, *, refresh: bool = False) -> dict[int, str]:
+    async def _fetch_subnet_pool_name_map(
+        self, *, refresh: bool = False, cache_only: bool = False
+    ) -> dict[int, str]:
         async def loader() -> dict[int, str]:
             payload = await self._get(
                 "/api/dtao/pool/latest/v1",
@@ -486,12 +489,84 @@ class TaostatsService:
                     names[netuid] = name
             return names
 
+        key = "subnet_pool_names:all"
+        now = time.monotonic()
+        if not refresh:
+            cached = self._cache.get(key)
+            if cached and now - cached[0] < settings.rankings_cache_ttl_seconds:
+                return cached[1]
+            if cache_only:
+                return {}
+
         return await self._cached(
-            "subnet_pool_names:all",
+            key,
             loader,
             refresh=refresh,
             ttl=settings.rankings_cache_ttl_seconds,
         )
+
+    def _cached_miner_daily_total(self, netuid: int) -> float:
+        key = f"miner_daily_total:{netuid}"
+        cached = self._cache.get(key)
+        if cached and time.monotonic() - cached[0] < settings.rankings_cache_ttl_seconds:
+            return float(cached[1])
+        return 0.0
+
+    def _clear_miner_daily_caches(self) -> None:
+        for key in list(self._cache):
+            if key.startswith("miner_daily_total:"):
+                self._cache.pop(key, None)
+
+    def is_miner_daily_warming(self) -> bool:
+        return (
+            self._miner_daily_warm_task is not None
+            and not self._miner_daily_warm_task.done()
+        )
+
+    def _has_complete_miner_daily_cache(self) -> bool:
+        cached_subnets = self._cache.get("all_subnets:latest")
+        if not cached_subnets:
+            return False
+        rows = cached_subnets[1]
+        netuids = [int(row.get("netuid", -1)) for row in rows if int(row.get("netuid", -1)) > 0]
+        if not netuids:
+            return False
+        ttl = settings.rankings_cache_ttl_seconds
+        now = time.monotonic()
+        for netuid in netuids:
+            cached = self._cache.get(f"miner_daily_total:{netuid}")
+            if not cached or now - cached[0] >= ttl:
+                return False
+        return True
+
+    def schedule_miner_daily_warm(self, *, refresh: bool = False) -> bool:
+        if self._has_complete_miner_daily_cache() and not refresh:
+            return False
+        self.ensure_miner_daily_warming(refresh=refresh)
+        return True
+
+    def ensure_miner_daily_warming(self, *, refresh: bool = False) -> None:
+        if self._miner_daily_warm_task and not self._miner_daily_warm_task.done():
+            return
+        self._miner_daily_warm_task = asyncio.create_task(
+            self._warm_miner_daily_cache(refresh=refresh)
+        )
+
+    async def _warm_miner_daily_cache(self, *, refresh: bool = False) -> None:
+        try:
+            rows = await self._fetch_all_subnet_rows(refresh=False)
+            netuids = [
+                int(row.get("netuid", -1))
+                for row in rows
+                if int(row.get("netuid", -1)) > 0
+            ]
+            for netuid in netuids:
+                await self._sum_miner_daily_total(netuid, refresh=refresh)
+            await self._fetch_subnet_pool_name_map(refresh=refresh)
+            self._cache.pop("subnet_rankings:miner_daily", None)
+            logger.info("Miner daily cache warm complete for %d subnets", len(netuids))
+        except Exception:
+            logger.exception("Miner daily cache warm failed")
 
     async def _sum_miner_daily_total(self, netuid: int, *, refresh: bool = False) -> float:
         async def loader() -> float:
@@ -505,24 +580,6 @@ class TaostatsService:
 
         return await self._cached(
             f"miner_daily_total:{netuid}",
-            loader,
-            refresh=refresh,
-            ttl=settings.rankings_cache_ttl_seconds,
-        )
-
-    async def _fetch_miner_daily_map(self, *, refresh: bool = False) -> dict[int, float]:
-        async def loader() -> dict[int, float]:
-            rows = await self._fetch_all_subnet_rows(refresh=False)
-            totals: dict[int, float] = {}
-            for row in rows:
-                netuid = int(row.get("netuid", -1))
-                if netuid <= 0:
-                    continue
-                totals[netuid] = await self._sum_miner_daily_total(netuid, refresh=refresh)
-            return totals
-
-        return await self._cached(
-            "miner_daily_totals:all",
             loader,
             refresh=refresh,
             ttl=settings.rankings_cache_ttl_seconds,
@@ -545,8 +602,10 @@ class TaostatsService:
 
     async def _build_rankings(self, *, refresh: bool = False) -> list[SubnetRankingEntry]:
         rows = await self._fetch_all_subnet_rows(refresh=refresh)
-        pool_names = await self._fetch_subnet_pool_name_map(refresh=refresh)
-        miner_daily = await self._fetch_miner_daily_map(refresh=refresh)
+        pool_names = await self._fetch_subnet_pool_name_map(
+            refresh=refresh,
+            cache_only=not refresh,
+        )
         entries: list[SubnetRankingEntry] = []
 
         for row in rows:
@@ -562,13 +621,16 @@ class TaostatsService:
                     netuid=netuid,
                     name=self._resolve_subnet_name(netuid, pool_names),
                     incentive_burn=burn,
-                    miner_daily_total=miner_daily.get(netuid, 0.0),
+                    miner_daily_total=self._cached_miner_daily_total(netuid),
                     registration_fee=_rao_to_tao(row.get("neuron_registration_cost")),
                     tracked=netuid in SUBNETS,
                 )
             )
 
-        entries.sort(key=lambda entry: entry.miner_daily_total, reverse=True)
+        entries.sort(
+            key=lambda entry: (entry.miner_daily_total, entry.incentive_burn),
+            reverse=True,
+        )
         for index, entry in enumerate(entries, start=1):
             entry.rank = index
         return entries
@@ -577,11 +639,11 @@ class TaostatsService:
         self, *, refresh: bool = False
     ) -> list[SubnetRankingEntry]:
         if refresh:
-            self._cache.pop("subnet_rankings:all", None)
-            self._cache.pop("miner_daily_totals:all", None)
+            self._cache.pop("subnet_rankings:miner_daily", None)
+            self._clear_miner_daily_caches()
 
         return await self._cached(
-            "subnet_rankings:all",
+            "subnet_rankings:miner_daily",
             lambda: self._build_rankings(refresh=refresh),
             refresh=refresh,
             ttl=settings.rankings_cache_ttl_seconds,

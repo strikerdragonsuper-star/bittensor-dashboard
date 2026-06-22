@@ -74,6 +74,7 @@ export interface SubnetDashboardResponse {
 export interface SubnetRankingsResponse {
   rankings: SubnetRankingEntry[];
   updated_at: string;
+  miner_daily_warming?: boolean;
 }
 
 export interface SubnetRankingEntry {

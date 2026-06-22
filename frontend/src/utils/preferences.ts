@@ -45,3 +45,41 @@ export function storeTab(tab: AppTab): void {
     /* ignore */
   }
 }
+
+const CLIQUE_HOTKEYS_KEY = "bittensor-dashboard.cliqueHotkeys";
+
+export function readStoredCliqueHotkeys(): string[] {
+  try {
+    const raw = localStorage.getItem(CLIQUE_HOTKEYS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((value): value is string => typeof value === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function storeCliqueHotkeys(hotkeys: string[]): void {
+  try {
+    localStorage.setItem(CLIQUE_HOTKEYS_KEY, JSON.stringify(hotkeys));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function addCliqueHotkey(hotkey: string): string[] {
+  const trimmed = hotkey.trim();
+  if (!trimmed) return readStoredCliqueHotkeys();
+  const existing = readStoredCliqueHotkeys();
+  if (existing.includes(trimmed)) return existing;
+  const next = [...existing, trimmed];
+  storeCliqueHotkeys(next);
+  return next;
+}
+
+export function removeCliqueHotkey(hotkey: string): string[] {
+  const next = readStoredCliqueHotkeys().filter((value) => value !== hotkey);
+  storeCliqueHotkeys(next);
+  return next;
+}

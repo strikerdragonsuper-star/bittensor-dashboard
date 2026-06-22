@@ -63,3 +63,24 @@ export interface CliqueRuns {
   dashboard_url: string;
   updated_at: string;
 }
+
+export interface CliqueHotkeyStatus {
+  hotkey: string;
+  registered: boolean;
+  uid: number | null;
+  miner_rank: number | null;
+  coldkey: string | null;
+  active: boolean;
+  is_serving: boolean;
+  stake: number;
+  daily_income: number;
+  incentive: number;
+  emission: number;
+  registration_fee: number | null;
+  latest_reward: number | null;
+  latest_optimality: number | null;
+  latest_diversity: number | null;
+  latest_run_name: string | null;
+  latest_run_id: string | null;
+  updated_at: string;
+}

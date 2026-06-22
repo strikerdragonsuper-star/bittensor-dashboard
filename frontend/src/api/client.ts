@@ -7,6 +7,7 @@ import type {
   WalletBalance,
 } from "../types";
 import type {
+  CliqueHotkeyStatus,
   CliqueRuns,
   OroLeaderboard,
   TrishoolPlatformInfo,
@@ -57,11 +58,7 @@ export const api = {
   listSubnets: (options?: FetchOptions) =>
     fetchJson<SubnetSummary[]>(withQuery("/api/subnets", options)),
   getSubnetRankings: (options?: FetchOptions) =>
-    fetchJson<SubnetRankingsResponse>(
-      withQuery("/api/subnets/rankings", options),
-      undefined,
-      options?.refresh ? 1_800_000 : 120_000,
-    ),
+    fetchJson<SubnetRankingsResponse>(withQuery("/api/subnets/rankings", options)),
   getDashboard: (netuid: number, options?: FetchOptions) =>
     fetchJson<SubnetDashboardResponse>(
       withQuery(`/api/subnets/${netuid}/dashboard`, options),
@@ -82,4 +79,8 @@ export const api = {
   getOroLeaderboard: () => fetchJson<OroLeaderboard>("/api/subnets/15/oro/leaderboard"),
   getTrishoolInfo: () => fetchJson<TrishoolPlatformInfo>("/api/subnets/23/trishool/info"),
   getCliqueRuns: () => fetchJson<CliqueRuns>("/api/subnets/83/clique/runs?limit=8"),
+  getCliqueHotkeyStatus: (hotkey: string, options?: FetchOptions) =>
+    fetchJson<CliqueHotkeyStatus>(
+      withQuery(`/api/subnets/83/clique/hotkeys/${encodeURIComponent(hotkey)}/status`, options),
+    ),
 };
