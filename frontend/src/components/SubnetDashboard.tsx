@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import { DATA_REFRESH_INTERVAL_MS } from "../config";
 import type { NeuronRecord, SubnetOverview, SubnetSummary } from "../types";
-import { formatPercent, formatTao, formatTime } from "../utils/format";
+import { formatPercent, formatTao, formatRelativeTime, formatTime } from "../utils/format";
 import { NeuronTable } from "./NeuronTable";
 import { StatCard } from "./StatCard";
 import { SubnetExtras } from "./extras/SubnetExtras";
@@ -9,45 +10,92 @@ import { SubnetExtras } from "./extras/SubnetExtras";
 interface SubnetDashboardProps {
   netuid: number;
   summary: SubnetSummary;
+  reloadToken?: number;
+  onOverviewLoaded?: (overview: SubnetOverview) => void;
+  onDataUpdated?: (updatedAt: string) => void;
 }
 
-export function SubnetDashboard({ netuid, summary }: SubnetDashboardProps) {
+export function SubnetDashboard({
+  netuid,
+  summary,
+  reloadToken = 0,
+  onOverviewLoaded,
+  onDataUpdated,
+}: SubnetDashboardProps) {
   const [overview, setOverview] = useState<SubnetOverview | null>(null);
   const [miners, setMiners] = useState<NeuronRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, setRelativeTick] = useState(0);
+  const hasLoaded = useRef(false);
+  const loadedNetuid = useRef<number | null>(null);
+  const prevReloadToken = useRef(reloadToken);
+  const onOverviewLoadedRef = useRef(onOverviewLoaded);
+  const onDataUpdatedRef = useRef(onDataUpdated);
+
+  onOverviewLoadedRef.current = onOverviewLoaded;
+  onDataUpdatedRef.current = onDataUpdated;
+
+  useEffect(() => {
+    if (loadedNetuid.current !== netuid) {
+      loadedNetuid.current = netuid;
+      hasLoaded.current = false;
+      setOverview(null);
+      setMiners([]);
+      setLoading(true);
+      setError(null);
+    }
+  }, [netuid]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      setLoading(true);
+    async function load(refresh: boolean) {
+      const isInitial = !hasLoaded.current;
+      if (isInitial) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       setError(null);
+
       try {
-        const [overviewResult, neuronsResult] = await Promise.all([
-          api.getOverview(netuid),
-          api.getNeurons(netuid, "miner"),
-        ]);
+        const result = await api.getDashboard(netuid, { refresh });
         if (!cancelled) {
-          setOverview(overviewResult);
-          setMiners(neuronsResult.neurons);
+          setOverview(result.overview);
+          setMiners(result.neurons);
+          hasLoaded.current = true;
+          onOverviewLoadedRef.current?.(result.overview);
+          onDataUpdatedRef.current?.(result.updated_at);
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load subnet data");
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     }
 
-    load();
-    const interval = setInterval(load, 180_000);
+    load(reloadToken > prevReloadToken.current);
+    prevReloadToken.current = reloadToken;
+
+    const interval = setInterval(() => load(false), DATA_REFRESH_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [netuid]);
+  }, [netuid, reloadToken]);
+
+  useEffect(() => {
+    if (!overview) return;
+    const id = setInterval(() => setRelativeTick((tick) => tick + 1), 30_000);
+    return () => clearInterval(id);
+  }, [overview]);
 
   return (
     <div className="space-y-6">
@@ -57,14 +105,20 @@ export function SubnetDashboard({ netuid, summary }: SubnetDashboardProps) {
           <h2 className="text-2xl font-semibold text-white">{summary.name}</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">{summary.description}</p>
         </div>
-        <a
-          href={summary.dashboard_url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 transition hover:border-sky-400/40 hover:text-white"
-        >
-          Official dashboard ↗
-        </a>
+        <div className="flex items-center gap-3">
+          {refreshing ? <span className="text-xs text-slate-500">Refreshing…</span> : null}
+          {loading && !overview ? (
+            <span className="text-xs text-slate-500">Loading…</span>
+          ) : null}
+          <a
+            href={summary.dashboard_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 transition hover:border-sky-400/40 hover:text-white"
+          >
+            Official dashboard ↗
+          </a>
+        </div>
       </div>
 
       {error ? (
@@ -100,13 +154,13 @@ export function SubnetDashboard({ netuid, summary }: SubnetDashboardProps) {
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-medium text-slate-300">Miner rankings</h3>
         {overview ? (
-          <span className="ml-auto text-xs text-slate-500">
-            Updated {formatTime(overview.updated_at)}
+          <span className="ml-auto text-xs text-slate-500" title={formatTime(overview.updated_at)}>
+            Updated {formatRelativeTime(overview.updated_at)}
           </span>
         ) : null}
       </div>
 
-      <NeuronTable neurons={miners} loading={loading} />
+      <NeuronTable neurons={miners} loading={loading && miners.length === 0} />
     </div>
   );
 }

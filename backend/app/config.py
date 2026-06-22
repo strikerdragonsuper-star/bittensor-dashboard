@@ -6,6 +6,8 @@ class Settings(BaseSettings):
 
     network: str = "finney"
     cache_ttl_seconds: int = 180
+    registration_cache_ttl_seconds: int = 900
+    rankings_cache_ttl_seconds: int = 3600
     taostats_max_requests_per_minute: int = 4
     taostats_min_request_interval: float = 13.0
     target_subnets: list[int] = [15, 23, 83]

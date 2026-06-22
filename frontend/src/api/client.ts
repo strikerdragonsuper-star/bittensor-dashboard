@@ -1,7 +1,8 @@
 import type {
   PortfolioResponse,
-  SubnetNeuronsResponse,
+  SubnetDashboardResponse,
   SubnetOverview,
+  SubnetRankingsResponse,
   SubnetSummary,
   WalletBalance,
 } from "../types";
@@ -11,7 +12,17 @@ import type {
   TrishoolPlatformInfo,
 } from "../types/extras";
 
-async function fetchJson<T>(path: string, init?: RequestInit, timeoutMs = 20_000): Promise<T> {
+type FetchOptions = {
+  refresh?: boolean;
+};
+
+function withQuery(path: string, options?: FetchOptions): string {
+  if (!options?.refresh) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}refresh=1`;
+}
+
+async function fetchJson<T>(path: string, init?: RequestInit, timeoutMs = 60_000): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -43,16 +54,30 @@ async function fetchJson<T>(path: string, init?: RequestInit, timeoutMs = 20_000
 
 export const api = {
   health: () => fetchJson<{ status: string; taostats_configured: boolean }>("/api/health"),
-  listSubnets: () => fetchJson<SubnetSummary[]>("/api/subnets"),
-  getOverview: (netuid: number) =>
-    fetchJson<SubnetOverview>(`/api/subnets/${netuid}/overview`),
-  getNeurons: (netuid: number, role: "validator" | "miner" = "miner") => {
-    return fetchJson<SubnetNeuronsResponse>(`/api/subnets/${netuid}/neurons?role=${role}`);
-  },
-  getBalance: (address: string) =>
-    fetchJson<WalletBalance>(`/api/wallets/${encodeURIComponent(address)}/balance`),
-  getPortfolio: (address: string) =>
-    fetchJson<PortfolioResponse>(`/api/wallets/${encodeURIComponent(address)}/portfolio`),
+  listSubnets: (options?: FetchOptions) =>
+    fetchJson<SubnetSummary[]>(withQuery("/api/subnets", options)),
+  getSubnetRankings: (options?: FetchOptions) =>
+    fetchJson<SubnetRankingsResponse>(
+      withQuery("/api/subnets/rankings", options),
+      undefined,
+      options?.refresh ? 1_800_000 : 120_000,
+    ),
+  getDashboard: (netuid: number, options?: FetchOptions) =>
+    fetchJson<SubnetDashboardResponse>(
+      withQuery(`/api/subnets/${netuid}/dashboard`, options),
+    ),
+  getTagStats: (netuid: number, options?: FetchOptions) =>
+    fetchJson<SubnetSummary>(withQuery(`/api/subnets/${netuid}/tag-stats`, options)),
+  getOverview: (netuid: number, options?: FetchOptions) =>
+    fetchJson<SubnetOverview>(withQuery(`/api/subnets/${netuid}/overview`, options)),
+  getBalance: (address: string, options?: FetchOptions) =>
+    fetchJson<WalletBalance>(
+      withQuery(`/api/wallets/${encodeURIComponent(address)}/balance`, options),
+    ),
+  getPortfolio: (address: string, options?: FetchOptions) =>
+    fetchJson<PortfolioResponse>(
+      withQuery(`/api/wallets/${encodeURIComponent(address)}/portfolio`, options),
+    ),
 
   getOroLeaderboard: () => fetchJson<OroLeaderboard>("/api/subnets/15/oro/leaderboard"),
   getTrishoolInfo: () => fetchJson<TrishoolPlatformInfo>("/api/subnets/23/trishool/info"),

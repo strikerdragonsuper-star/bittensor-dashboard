@@ -6,9 +6,6 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field
 
-from app.adapters.cache import TTLCache
-from app.config import settings
-
 
 class OroTopAgent(BaseModel):
     top_miner_hotkey: str | None = None

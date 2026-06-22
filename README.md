@@ -54,6 +54,10 @@ Open http://localhost:5173
 # Required for on-chain metagraph
 TAOSTATS_API_KEY=your_key_here
 
+# Cache TTLs (seconds) — align with frontend auto-refresh (default 180s)
+CACHE_TTL_SECONDS=180
+REGISTRATION_CACHE_TTL_SECONDS=900
+
 # Optional — Phase 2
 WANDB_API_KEY=your_wandb_key
 ```

@@ -10,6 +10,11 @@ export interface SubnetSummary {
   name: string;
   description: string;
   dashboard_url: string;
+  incentive_burn?: number;
+  registration_fee?: number;
+  immune_registration_count?: number;
+  immune_today_count?: number | null;
+  immune_yesterday_count?: number | null;
 }
 
 export interface SubnetOverview {
@@ -25,6 +30,11 @@ export interface SubnetOverview {
   total_emission: number;
   total_daily_income: number;
   avg_incentive: number;
+  incentive_burn: number;
+  registration_fee: number;
+  immune_registration_count: number;
+  immune_today_count?: number | null;
+  immune_yesterday_count?: number | null;
   updated_at: string;
 }
 
@@ -52,6 +62,28 @@ export interface SubnetNeuronsResponse {
   block: number;
   neurons: NeuronRecord[];
   updated_at: string;
+}
+
+export interface SubnetDashboardResponse {
+  overview: SubnetOverview;
+  neurons: NeuronRecord[];
+  block: number;
+  updated_at: string;
+}
+
+export interface SubnetRankingsResponse {
+  rankings: SubnetRankingEntry[];
+  updated_at: string;
+}
+
+export interface SubnetRankingEntry {
+  rank: number;
+  netuid: number;
+  name: string;
+  incentive_burn: number;
+  miner_daily_total: number;
+  registration_fee: number;
+  tracked: boolean;
 }
 
 export interface WalletBalance {

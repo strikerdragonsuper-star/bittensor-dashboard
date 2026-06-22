@@ -9,8 +9,8 @@ from app.adapters.cache import TTLCache
 from app.config import settings
 from app.models_extras import CliqueMinerScore, CliqueRunSummary, CliqueRunsResponse
 
-_cache = TTLCache(settings.cache_ttl_seconds)
 DASHBOARD_URL = "https://wandb.ai/toptensor-ai/CliqueAI/table"
+_cache = TTLCache(settings.cache_ttl_seconds)
 
 
 class CliqueAdapter:
@@ -96,10 +96,10 @@ class CliqueAdapter:
         )
 
     async def fetch_recent_runs(self, limit: int = 10) -> CliqueRunsResponse:
-        async def loader():
-            return await asyncio.to_thread(self._fetch_runs_sync, limit)
-
-        return await _cache.get(f"clique:runs:{limit}", loader)
+        return await _cache.get(
+            f"clique:runs:{limit}",
+            lambda: asyncio.to_thread(self._fetch_runs_sync, limit),
+        )
 
 
 clique_adapter = CliqueAdapter()

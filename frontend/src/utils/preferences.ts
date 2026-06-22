@@ -6,7 +6,7 @@ const TAB_KEY = "bittensor-dashboard.tab";
 const VALID_NETUIDS = new Set(SUBNETS.map((s) => s.netuid));
 const DEFAULT_NETUID = SUBNETS[0]?.netuid ?? 15;
 
-export type AppTab = "subnets" | "wallet";
+export type AppTab = "subnets" | "rankings" | "wallet";
 
 export function readStoredNetuid(): number {
   try {
@@ -31,7 +31,7 @@ export function storeNetuid(netuid: number): void {
 export function readStoredTab(): AppTab {
   try {
     const raw = localStorage.getItem(TAB_KEY);
-    if (raw === "subnets" || raw === "wallet") return raw;
+    if (raw === "subnets" || raw === "wallet" || raw === "rankings") return raw;
   } catch {
     /* ignore */
   }

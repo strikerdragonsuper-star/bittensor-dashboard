@@ -38,6 +38,11 @@ class SubnetOverview(BaseModel):
     total_emission: float
     total_daily_income: float
     avg_incentive: float
+    incentive_burn: float = 0.0
+    registration_fee: float = 0.0
+    immune_registration_count: int = 0
+    immune_today_count: int | None = None
+    immune_yesterday_count: int | None = None
     updated_at: datetime
 
 
@@ -46,6 +51,13 @@ class SubnetNeuronsResponse(BaseModel):
     name: str
     block: int
     neurons: list[NeuronRecord]
+    updated_at: datetime
+
+
+class SubnetDashboardResponse(BaseModel):
+    overview: SubnetOverview
+    neurons: list[NeuronRecord]
+    block: int
     updated_at: datetime
 
 
@@ -61,6 +73,11 @@ class SubnetSummary(BaseModel):
     name: str
     description: str
     dashboard_url: str
+    incentive_burn: float | None = None
+    registration_fee: float | None = None
+    immune_registration_count: int | None = None
+    immune_today_count: int | None = None
+    immune_yesterday_count: int | None = None
 
 
 class HealthResponse(BaseModel):
@@ -88,4 +105,19 @@ class PortfolioResponse(BaseModel):
     network: str
     free_tao: float
     entries: list[PortfolioEntry]
+    updated_at: datetime
+
+
+class SubnetRankingEntry(BaseModel):
+    rank: int
+    netuid: int
+    name: str
+    incentive_burn: float
+    miner_daily_total: float = 0.0
+    registration_fee: float = 0.0
+    tracked: bool = False
+
+
+class SubnetRankingsResponse(BaseModel):
+    rankings: list[SubnetRankingEntry]
     updated_at: datetime
